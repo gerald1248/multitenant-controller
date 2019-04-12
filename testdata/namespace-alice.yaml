@@ -1,0 +1,11 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: alice
+  labels:
+    system: alice
+  annotations:
+    multitenant-pod-network/group: apps
+spec:
+  finalizers:
+  - kubernetes
