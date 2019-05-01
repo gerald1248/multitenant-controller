@@ -1,5 +1,8 @@
 package main
 
 func generatePolicies(state map[string]string) ([]string, error) {
-    return nil, nil
+
+	// iterate over namespaces/map keys
+
+	return nil, nil
 }

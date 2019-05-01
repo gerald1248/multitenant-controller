@@ -13,5 +13,5 @@ type Controller struct {
         informer    cache.Controller
         clientset   kubernetes.Interface
         mutex       *sync.Mutex
-        annotations map[string]string
+        annotations map[string]string // map[NAMESPACE]GROUP
 }
