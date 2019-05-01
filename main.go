@@ -3,10 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"sync"
 	"time"
-
-	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -16,11 +15,15 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
+
+	au "github.com/logrusorgru/aurora"
+	rest "k8s.io/client-go/rest"
 )
 
 const annotationPrefix = "multitenant-pod-network"
 const annotationName = "group"
 
+// NewController acts as the central controller constructor
 func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller, clientset kubernetes.Interface, mutex *sync.Mutex, annotations map[string]string) *Controller {
 	return &Controller{
 		informer:    informer,
@@ -47,31 +50,36 @@ func (c *Controller) processNextItem() bool {
 func (c *Controller) syncToStdout(key string) error {
 	obj, exists, err := c.indexer.GetByKey(key)
 	if err != nil {
-		klog.Errorf("Fetching object with key %s from store failed with %v", key, err)
+		log(fmt.Sprintf("%s: fetching object with key %s from store failed with %v", au.Red(au.Bold("ERROR")), key, err))
 		return err
 	}
 
 	if !exists {
-		fmt.Printf("Namespace %s deleted\n", key)
+		log(fmt.Sprintf("%s: namespace %s deleted", au.Cyan(au.Bold("INFO")), key))
 		c.mutex.Lock()
 		delete(c.annotations, key)
 		c.mutex.Unlock()
 	} else {
 		name := obj.(*v1.Namespace).GetName()
 		annotation := obj.(*v1.Namespace).ObjectMeta.Annotations[fmt.Sprintf("%s/%s", annotationPrefix, annotationName)]
-		fmt.Printf("Scanning namespace %s\n", name)
 
 		if len(annotation) > 0 {
 			c.mutex.Lock()
-			fmt.Printf("Annotation: %s\n", annotation)
+			log(fmt.Sprintf("%s: processing namespace %s (annotation %s)", au.Cyan(au.Bold("INFO")), name, au.Bold(annotation)))
 			c.annotations[name] = annotation
 			c.mutex.Unlock()
 		}
 	}
 	if c.queue.Len() == 0 {
 		c.mutex.Lock()
-		fmt.Printf("Multitenant state is as follows: %v\n", c.annotations)
+		state := c.annotations
 		c.mutex.Unlock()
+		log(fmt.Sprintf("%s: multitenant state is as follows: %v", au.Cyan(au.Bold("INFO")), au.Bold(state)))
+		err = apply(c.annotations)
+		if err != nil {
+			log(fmt.Sprintf("%s: can't apply state %v: %v", au.Red(au.Bold("ERROR")), state, err))
+		}
+
 	}
 	return nil
 }
@@ -84,21 +92,22 @@ func (c *Controller) handleErr(err error, key interface{}) {
 	}
 
 	if c.queue.NumRequeues(key) < 5 {
-		klog.Infof("Error syncing namespace %v: %v", key, err)
+		log(fmt.Sprintf("%s: can't sync namespace %v: %v", au.Red(au.Bold("ERROR")), key, err))
 		c.queue.AddRateLimited(key)
 		return
 	}
 
 	c.queue.Forget(key)
 	runtime.HandleError(err)
-	klog.Infof("Dropping namespace %q out of the queue: %v", key, err)
+	log(fmt.Sprintf("%s: dropping namespace %q out of the queue: %v", au.Cyan(au.Bold("INFO")), key, err))
 }
 
+// Run manages the controller lifecycle
 func (c *Controller) Run(threadiness int, stopCh chan struct{}) {
 	defer runtime.HandleCrash()
 
 	defer c.queue.ShutDown()
-	klog.Info("Starting namespace controller")
+	log(fmt.Sprintf("%s: starting namespace controller", au.Cyan(au.Bold("INFO"))))
 
 	go c.informer.Run(stopCh)
 
@@ -112,7 +121,7 @@ func (c *Controller) Run(threadiness int, stopCh chan struct{}) {
 	}
 
 	<-stopCh
-	klog.Info("Stopping namespace controller")
+	log(fmt.Sprintf("%s: stopping namespace controller", au.Cyan(au.Bold("INFO"))))
 }
 
 func (c *Controller) runWorker() {
@@ -128,16 +137,39 @@ func main() {
 	flag.StringVar(&master, "master", "", "master url")
 	flag.Parse()
 
+	if len(kubeconfig) == 0 {
+		kubeconfig = os.Getenv("KUBECONFIG")
+	}
+
+	var config *rest.Config
+	var configError error
+
+	if len(kubeconfig) > 0 {
+		config, configError = clientcmd.BuildConfigFromFlags(master, kubeconfig)
+		if configError != nil {
+			log(fmt.Sprintf("%s: %s", au.Bold(au.Red("ERROR")), configError))
+			return
+		}
+	} else {
+		config, configError = rest.InClusterConfig()
+		if configError != nil {
+			log(fmt.Sprintf("%s: %s", au.Bold(au.Red("ERROR")), configError))
+			return
+		}
+	}
+
 	// creates the connection
 	config, err := clientcmd.BuildConfigFromFlags(master, kubeconfig)
 	if err != nil {
-		klog.Fatal(err)
+		log(fmt.Sprintf("%s: %s", au.Bold(au.Red("ERROR")), err))
+		return
 	}
 
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		klog.Fatal(err)
+		log(fmt.Sprintf("%s: %s", au.Bold(au.Red("ERROR")), err))
+		return
 	}
 
 	var mutex = &sync.Mutex{}

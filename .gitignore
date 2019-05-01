@@ -13,3 +13,6 @@ multitenant-controller
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Housekeeping
+.vscode
