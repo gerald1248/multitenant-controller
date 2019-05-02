@@ -21,7 +21,8 @@ import (
 )
 
 const labelPrefix = "multitenant-pod-network"
-const labelName = "group"
+const labelNameGroup = "group"
+const labelNameOwner = "owner"
 
 // NewController acts as the central controller constructor
 func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller, clientset kubernetes.Interface, mutex *sync.Mutex, state map[string]string) *Controller {
@@ -61,7 +62,7 @@ func (c *Controller) syncToStdout(key string) error {
 		c.mutex.Unlock()
 	} else {
 		name := obj.(*v1.Namespace).GetName()
-		label := obj.(*v1.Namespace).ObjectMeta.Labels[fmt.Sprintf("%s/%s", labelPrefix, labelName)]
+		label := obj.(*v1.Namespace).ObjectMeta.Labels[fmt.Sprintf("%s/%s", labelPrefix, labelNameGroup)]
 
 		if len(label) > 0 {
 			c.mutex.Lock()

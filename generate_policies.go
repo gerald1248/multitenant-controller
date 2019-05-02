@@ -41,7 +41,10 @@ func generatePolicy(namespace string, group string, groups []string) (string, er
 	"kind": "NetworkPolicy",
 	"metadata": {
 		"name": "multitenant",
-		"namespace": "%s"
+		"namespace": "%s",
+		"labels": {
+			"%s/%s": "multitenant-controller"
+		}
 	},
 	"spec": {
 		"policyTypes": [ "Ingress" ],
@@ -57,7 +60,7 @@ func generatePolicy(namespace string, group string, groups []string) (string, er
 			]
 		]	
 	},
-}`, namespace, labelPrefix, labelName, arrayToCSV(groups))
+}`, namespace, labelPrefix, labelNameOwner, labelPrefix, labelNameGroup, arrayToCSV(groups))
 	return manifest, nil
 }
 

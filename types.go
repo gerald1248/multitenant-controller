@@ -7,6 +7,7 @@ import (
         "k8s.io/client-go/util/workqueue"
 )
 
+// Controller manages the controller machinery as well as the controller state
 type Controller struct {
         indexer     cache.Indexer
         queue       workqueue.RateLimitingInterface
