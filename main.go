@@ -20,18 +20,18 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-const annotationPrefix = "multitenant-pod-network"
-const annotationName = "group"
+const labelPrefix = "multitenant-pod-network"
+const labelName = "group"
 
 // NewController acts as the central controller constructor
-func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller, clientset kubernetes.Interface, mutex *sync.Mutex, annotations map[string]string) *Controller {
+func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller, clientset kubernetes.Interface, mutex *sync.Mutex, state map[string]string) *Controller {
 	return &Controller{
 		informer:    informer,
 		indexer:     indexer,
 		queue:       queue,
 		clientset:   clientset,
 		mutex:       mutex,
-		annotations: annotations,
+		state:       state,
 	}
 }
 
@@ -57,25 +57,25 @@ func (c *Controller) syncToStdout(key string) error {
 	if !exists {
 		log(fmt.Sprintf("%s: namespace %s deleted", au.Cyan(au.Bold("INFO")), key))
 		c.mutex.Lock()
-		delete(c.annotations, key)
+		delete(c.state, key)
 		c.mutex.Unlock()
 	} else {
 		name := obj.(*v1.Namespace).GetName()
-		annotation := obj.(*v1.Namespace).ObjectMeta.Annotations[fmt.Sprintf("%s/%s", annotationPrefix, annotationName)]
+		label := obj.(*v1.Namespace).ObjectMeta.Labels[fmt.Sprintf("%s/%s", labelPrefix, labelName)]
 
-		if len(annotation) > 0 {
+		if len(label) > 0 {
 			c.mutex.Lock()
-			log(fmt.Sprintf("%s: processing namespace %s (annotation %s)", au.Cyan(au.Bold("INFO")), name, au.Bold(annotation)))
-			c.annotations[name] = annotation
+			log(fmt.Sprintf("%s: processing namespace %s (label %s)", au.Cyan(au.Bold("INFO")), name, au.Bold(label)))
+			c.state[name] = label
 			c.mutex.Unlock()
 		}
 	}
 	if c.queue.Len() == 0 {
 		c.mutex.Lock()
-		state := c.annotations
+		state := c.state
 		c.mutex.Unlock()
 		log(fmt.Sprintf("%s: multitenant state is as follows: %v", au.Cyan(au.Bold("INFO")), au.Bold(state)))
-		err = apply(c.annotations)
+		err = apply(c.state)
 		if err != nil {
 			log(fmt.Sprintf("%s: can't apply state %v: %v", au.Red(au.Bold("ERROR")), state, err))
 		}
@@ -173,7 +173,7 @@ func main() {
 	}
 
 	var mutex = &sync.Mutex{}
-	var annotations = map[string]string{}
+	var state = map[string]string{}
 
 	namespaceListWatcher := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "namespaces", "", fields.Everything())
 
@@ -200,7 +200,7 @@ func main() {
 		},
 	}, cache.Indexers{})
 
-	controller := NewController(queue, indexer, informer, clientset, mutex, annotations)
+	controller := NewController(queue, indexer, informer, clientset, mutex, state)
 
 	stop := make(chan struct{})
 	defer close(stop)

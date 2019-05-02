@@ -4,7 +4,6 @@ metadata:
   name: ingress
   labels:
     system: ingress
-  annotations:
     multitenant-pod-network/group: global
 spec:
   finalizers:

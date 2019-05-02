@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+)
+
 func applyPolicy(policy string) error {
-    return nil
+	fmt.Printf("%s\n", policy)
+	return nil
 }

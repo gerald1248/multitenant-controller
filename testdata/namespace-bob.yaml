@@ -4,7 +4,6 @@ metadata:
   name: bob
   labels:
     system: bob
-  annotations:
     multitenant-pod-network/group: apps
 spec:
   finalizers:
