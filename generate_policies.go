@@ -47,19 +47,20 @@ func generatePolicy(namespace string, group string, groups []string) (string, er
 		}
 	},
 	"spec": {
+		"podSelector": {},
 		"policyTypes": [ "Ingress" ],
-		"ingress": [
-			"from": [
+		"ingress": [{
+			"from": [{
 				"namespaceSelector": {
 					"matchExpressions": [{
 						"key": "%s/%s",
 						"operator": "In",
-						"in": [ %s ]
+						"values": [ %s ]
 					}]
 				}
-			]
-		]	
-	},
+			}]
+		}]	
+	}
 }`, namespace, labelPrefix, labelNameOwner, labelPrefix, labelNameGroup, arrayToCSV(groups))
 	return manifest, nil
 }
@@ -68,16 +69,4 @@ func arrayToCSV(values []string) string {
 	values = unique(values)
 	sort.Strings(values)
 	return strings.Join(values, ", ")
-}
-
-func unique(slice []string) []string {
-	keys := make(map[string]struct{})
-	list := []string{}
-	for _, entry := range slice {
-			if _, ok := keys[entry]; !ok {
-					keys[entry] = struct{}{}
-					list = append(list, entry)
-			}
-	}
-	return list
 }

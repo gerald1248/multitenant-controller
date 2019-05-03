@@ -1,0 +1,14 @@
+apiVersion: v1
+name: multitenant-controller
+version: 0.1.0
+description: "multitenant-controller"
+icon: "https://docs.helm.sh/src/img/helm-logo.svg"
+keywords:
+  - kubernetes
+  - NetworkPolicy
+home: https://github.com/gerald1248/multitenant-controller
+sources:
+  - https://github.com/gerald1248/multitenant-controller
+maintainers:
+  - name: gerald1248
+    email: gerald1248@gmail.com

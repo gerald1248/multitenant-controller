@@ -1,19 +1,23 @@
 package main
 
-func apply(state map[string]string) error {
+import (
+	kubernetes "k8s.io/client-go/kubernetes"
+)
+
+func apply(clientset kubernetes.Interface, state map[string]string) error {
     policies, err := generatePolicies(state)
     if err != nil {
-        return err;
+        return err
 	}
 	
 	for _, policy := range policies {
-		err = applyPolicy(policy)
+		err = applyPolicy(clientset, policy)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = prunePolicies(state)
+	err = prunePolicies(clientset, state)
 	if err != nil {
 		return err
 	}

@@ -76,7 +76,7 @@ func (c *Controller) syncToStdout(key string) error {
 		state := c.state
 		c.mutex.Unlock()
 		log(fmt.Sprintf("%s: multitenant state is as follows: %v", au.Cyan(au.Bold("INFO")), au.Bold(state)))
-		err = apply(c.state)
+		err = apply(c.clientset, c.state)
 		if err != nil {
 			log(fmt.Sprintf("%s: can't apply state %v: %v", au.Red(au.Bold("ERROR")), state, err))
 		}
