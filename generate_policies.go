@@ -70,3 +70,7 @@ func arrayToCSV(values []string) string {
 	sort.Strings(values)
 	return strings.Join(values, ", ")
 }
+
+func trimWhitespace(s string) string {
+	return strings.Trim(s, " \n\t")
+}

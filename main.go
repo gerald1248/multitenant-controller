@@ -75,7 +75,10 @@ func (c *Controller) syncToStdout(key string) error {
 		c.mutex.Lock()
 		state := c.state
 		c.mutex.Unlock()
-		log(fmt.Sprintf("%s: multitenant state is as follows: %v", au.Cyan(au.Bold("INFO")), au.Bold(state)))
+		log(fmt.Sprintf("%s: multitenant state is as follows:", au.Cyan(au.Bold("INFO"))))
+		for key, value := range c.state {
+			log(fmt.Sprintf("%s => %s", au.Bold(key), au.Bold(value)))
+		}
 		err = apply(c.clientset, c.state)
 		if err != nil {
 			log(fmt.Sprintf("%s: can't apply state %v: %v", au.Red(au.Bold("ERROR")), state, err))
@@ -108,7 +111,8 @@ func (c *Controller) Run(threadiness int, stopCh chan struct{}) {
 	defer runtime.HandleCrash()
 
 	defer c.queue.ShutDown()
-	log(fmt.Sprintf("%s: starting namespace controller", au.Cyan(au.Bold("INFO"))))
+	log(fmt.Sprintf("%s: starting multitenant controller", au.Cyan(au.Bold("INFO"))))
+	log(fmt.Sprintf("%s: watching namespaces with label %s", au.Bold(au.Cyan("INFO")), au.Bold(fmt.Sprintf("%s/%s", labelPrefix, labelNameGroup))))
 
 	go c.informer.Run(stopCh)
 
@@ -122,7 +126,7 @@ func (c *Controller) Run(threadiness int, stopCh chan struct{}) {
 	}
 
 	<-stopCh
-	log(fmt.Sprintf("%s: stopping namespace controller", au.Cyan(au.Bold("INFO"))))
+	log(fmt.Sprintf("%s: stopping multitenant controller", au.Cyan(au.Bold("INFO"))))
 }
 
 func (c *Controller) runWorker() {

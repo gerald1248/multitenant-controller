@@ -9,7 +9,7 @@ func apply(clientset kubernetes.Interface, state map[string]string) error {
     if err != nil {
         return err
 	}
-	
+
 	for _, policy := range policies {
 		err = applyPolicy(clientset, policy)
 		if err != nil {

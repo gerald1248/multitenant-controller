@@ -11,7 +11,7 @@ import (
 func applyPolicy(clientset kubernetes.Interface, policy string) error {
 	b := []byte(policy)
 	var obj v1.NetworkPolicy
-	err := json.Unmarshal(b, &obj) //TODO: error handling
+	err := json.Unmarshal(b, &obj)
 	if err != nil {
 		return err
 	}
@@ -20,7 +20,7 @@ func applyPolicy(clientset kubernetes.Interface, policy string) error {
 
 	_, err = clientset.NetworkingV1().NetworkPolicies(namespace).Create(&obj)
 	if err == nil {
-		log(fmt.Sprintf("%s: created network policy %s", au.Bold(au.Cyan("INFO")), au.Bold(name)))
+		log(fmt.Sprintf("%s: created network policy %s in namespace %s", au.Bold(au.Cyan("INFO")), au.Bold(name), au.Bold(namespace)))
 		return nil
 	}
 
@@ -29,6 +29,6 @@ func applyPolicy(clientset kubernetes.Interface, policy string) error {
 	if err != nil {
 		return err
 	}
-	log(fmt.Sprintf("%s: updated network policy %s", au.Bold(au.Cyan("INFO")), au.Bold(name)))
+	log(fmt.Sprintf("%s: updated network policy %s in namespace %s", au.Bold(au.Cyan("INFO")), au.Bold(name), au.Bold(namespace)))
 	return nil
 }
